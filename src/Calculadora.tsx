@@ -78,27 +78,37 @@ export const Calculadora = () => {
         }
     };
 
-    const formatTime = (date: Date) => {
+    const formatDateTime = (date: Date) => {
+        const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+        const formattedDate = date.toLocaleDateString(undefined, options);
+
         let hours = date.getHours();
         const minutes = date.getMinutes().toString().padStart(2, '0');
         const ampm = hours >= 12 ? 'PM' : 'AM';
         hours = hours % 12;
-        hours = hours ? hours : 12; // the hour '0' should be '12'
-        return `${hours}:${minutes} ${ampm}`;
+        hours = hours ? hours : 12; // La hora '0' debe ser '12'
+        const formattedTime = `${hours}:${minutes} ${ampm}`;
+
+        return { date: formattedDate, time: formattedTime };
     };
+
 
     const horas = () => {
         const currentDate = new Date();
         if (selectedBaya === 'Zanama') {
-            setHoraPlantacion(formatTime(currentDate));
+            const { date: plantacionDate, time: plantacionTime } = formatDateTime(currentDate);
+            setHoraPlantacion(`${plantacionDate}\n${plantacionTime}`);
 
             const riegoDate = new Date(currentDate.getTime() + 8 * 60 * 60 * 1000);
-            setHoraRiego(formatTime(riegoDate));
+            const { date: riegoFecha, time: riegoHora } = formatDateTime(riegoDate);
+            setHoraRiego(`${riegoFecha}\n${riegoHora}`);
 
-            const recogidaDate = new Date(currentDate.getTime() + 28 * 60 * 60 * 1000);
-            setHoraRecogida(formatTime(recogidaDate));
+            const recogidaDate = new Date(currentDate.getTime() + 20 * 60 * 60 * 1000);
+            const { date: recogidaFecha, time: recogidaHora } = formatDateTime(recogidaDate);
+            setHoraRecogida(`${recogidaFecha}\n${recogidaHora}`);
         } else {
-            setHoraPlantacion(formatTime(currentDate));
+            const { date: plantacionDate, time: plantacionTime } = formatDateTime(currentDate);
+            setHoraPlantacion(`${plantacionDate}\n${plantacionTime}`);
 
             Alert.alert(
                 'Riego de Bayas',
@@ -108,24 +118,31 @@ export const Calculadora = () => {
                         text: 'No',
                         onPress: () => {
                             const riegoDate = new Date(currentDate.getTime() + 4 * 60 * 60 * 1000);
-                            setHoraRiego(formatTime(riegoDate));
+                            const { date: riegoFecha, time: riegoHora } = formatDateTime(riegoDate);
+                            setHoraRiego(`${riegoFecha}\n${riegoHora}`);
+
                             const recogidaDate = new Date(currentDate.getTime() + 16 * 60 * 60 * 1000);
-                            setHoraRecogida(formatTime(recogidaDate));
+                            const { date: recogidaFecha, time: recogidaHora } = formatDateTime(recogidaDate);
+                            setHoraRecogida(`${recogidaFecha}\n${recogidaHora}`);
                         }
                     },
                     {
                         text: 'Sí',
                         onPress: () => {
                             const riegoDate = new Date(currentDate.getTime() + 12 * 60 * 60 * 1000);
-                            setHoraRiego(formatTime(riegoDate));
+                            const { date: riegoFecha, time: riegoHora } = formatDateTime(riegoDate);
+                            setHoraRiego(`${riegoFecha}\n${riegoHora}`);
+
                             const recogidaDate = new Date(currentDate.getTime() + 16 * 60 * 60 * 1000);
-                            setHoraRecogida(formatTime(recogidaDate));
+                            const { date: recogidaFecha, time: recogidaHora } = formatDateTime(recogidaDate);
+                            setHoraRecogida(`${recogidaFecha}\n${recogidaHora}`);
                         }
                     }
                 ]
             );
         }
     };
+
 
     const calculate = () => {
         if (Number(simpleSpicy) > 0 && Number(verySpicy) > 0) {
@@ -210,15 +227,16 @@ export const Calculadora = () => {
             </Text>
             <View style={styles.tableContainer}>
                 <View style={styles.tableRow}>
-                    <Text style={styles.tableHeader}>Hora plantación</Text>
-                    <Text style={styles.tableHeader}>Hora riego</Text>
-                    <Text style={styles.tableHeader}>Hora recogida</Text>
+                    <Text style={styles.tableHeader}>Fecha Plantación</Text>
+                    <Text style={styles.tableHeader}>Fecha Riego</Text>
+                    <Text style={styles.tableHeader}>Fecha Recogida</Text>
                 </View>
                 <View style={styles.tableRow}>
                     <Text style={styles.tableCell}>{horaPlantacion}</Text>
                     <Text style={styles.tableCell}>{horaRiego}</Text>
                     <Text style={styles.tableCell}>{horaRecogida}</Text>
                 </View>
+
             </View>
 
             {/* Semillas Picantes */}
@@ -232,6 +250,7 @@ export const Calculadora = () => {
                         value={simpleSpicy.toString()}
                         onChangeText={(text) => setSimpleSpicy(text)}
                         keyboardType='numeric'
+                        placeholderTextColor={'#888888'}
                     />
                 </View>
                 <View style={styles.seedInputContainer}>
@@ -242,6 +261,7 @@ export const Calculadora = () => {
                         value={verySpicy.toString()}
                         onChangeText={(text) => setVerySpicy(text)}
                         keyboardType='numeric'
+                        placeholderTextColor={'#888888'}
                     />
                 </View>
             </View>
@@ -260,6 +280,7 @@ export const Calculadora = () => {
                         value={simpleSweet.toString()}
                         onChangeText={(text) => setSimpleSweet(text)}
                         keyboardType='numeric'
+                        placeholderTextColor={'#888888'}
                     />
                 </View>
                 <View style={styles.seedInputContainer}>
@@ -273,6 +294,7 @@ export const Calculadora = () => {
                         value={verySweet.toString()}
                         onChangeText={(text) => setVerySweet(text)}
                         keyboardType='numeric'
+                        placeholderTextColor={'#888888'}
                     />
                 </View>
             </View>
@@ -372,6 +394,7 @@ const styles = StyleSheet.create({
         padding: 10,
         borderRadius: 10,
         width: '100%',
+        color:'#646464'
     },
     tableContainer: {
         marginVertical: 20,
