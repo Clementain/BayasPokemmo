@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import notifee, { TimestampTrigger, TriggerType, AndroidImportance } from '@notifee/react-native';
+
 
 export const Calculadora = () => {
     const [simpleSpicy, setSimpleSpicy] = useState('');
@@ -57,6 +59,74 @@ export const Calculadora = () => {
 
         loadStoredData();
     }, []);
+
+
+    const scheduleNotifications = async () => {
+        if (!selectedBaya || !horaRiego || !horaRecogida) {
+            Alert.alert('Error', 'Por favor, selecciona una baya y asegúrate de que las horas de riego y recogida estén definidas.');
+            return;
+        }
+
+        // Obtener la fecha y hora actual
+        const currentDate = new Date();
+
+        // Notificación para el riego
+        const riegoDate = new Date(horaRiego);
+        const riegoDelay = riegoDate.getTime() - currentDate.getTime();
+
+        if (riegoDelay > 0) {
+            const riegoTrigger: TimestampTrigger = {
+                type: TriggerType.TIMESTAMP,
+                timestamp: riegoDate.getTime(),
+            };
+
+            await notifee.createTriggerNotification(
+                {
+                    title: 'Recordatorio de Riego',
+                    body: `Tus bayas ${selectedBaya} necesitan ser regadas`,
+                    android: {
+                        channelId: 'default',
+                        pressAction: {
+                            id: 'default',
+                        },
+                        importance: AndroidImportance.HIGH, // Asegurar que la notificación tenga alta prioridad
+                        sound: 'default',  // Sonido por defecto
+                    },
+                },
+                riegoTrigger
+            );
+        }
+
+        // Notificación para la recogida
+        const recogidaDate = new Date(horaRecogida);
+        const recogidaDelay = recogidaDate.getTime() - currentDate.getTime();
+
+        if (recogidaDelay > 0) {
+            const recogidaTrigger: TimestampTrigger = {
+                type: TriggerType.TIMESTAMP,
+                timestamp: recogidaDate.getTime(),
+            };
+
+            await notifee.createTriggerNotification(
+                {
+                    title: 'Recordatorio de Cosecha',
+                    body: `Tus bayas ${selectedBaya} están listas para ser cosechadas`,
+                    android: {
+                        channelId: 'default',
+                        pressAction: {
+                            id: 'default',
+                        },
+                        importance: AndroidImportance.HIGH, // Asegurar que la notificación tenga alta prioridad
+                        sound: 'default',  // Sonido por defecto
+                    },
+                },
+                recogidaTrigger
+            );
+        }
+
+        Alert.alert('Notificaciones programadas', `Se han programado notificaciones para el riego y la cosecha de tus bayas ${selectedBaya}`);
+    };
+
 
     const reset = async () => {
         setSimpleSpicy('');
@@ -306,7 +376,9 @@ export const Calculadora = () => {
             <TouchableOpacity style={styles.calculateButton} onPress={reset}>
                 <Text style={styles.buttonText}>Reiniciar</Text>
             </TouchableOpacity>
-
+            <TouchableOpacity style={styles.calculateButton} onPress={scheduleNotifications}>
+                <Text style={styles.buttonText}>Crear Recordatorio</Text>
+            </TouchableOpacity>
             {/* Resultado */}
             <Text style={styles.resultTitle}>Semillas restantes para vender:</Text>
             <View style={styles.resultRow}>
@@ -394,7 +466,7 @@ const styles = StyleSheet.create({
         padding: 10,
         borderRadius: 10,
         width: '100%',
-        color:'#646464'
+        color: '#646464'
     },
     tableContainer: {
         marginVertical: 20,
