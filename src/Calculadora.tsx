@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import notifee, { AndroidImportance, TimestampTrigger, TriggerType } from '@notifee/react-native';
+import notifee, { AndroidImportance, TimestampTrigger, TriggerType, AndroidStyle } from '@notifee/react-native';
 
 
 export const Calculadora = () => {
     const [simpleSpicy, setSimpleSpicy] = useState('');
-    const [simpleSpicySell, setSimpleSpicySell] = useState('');
+    const [simpleSpicySell, setSimpleSpicySell] = useState('0');
     const [verySpicy, setVerySpicy] = useState('');
     const [simpleSweet, setSimpleSweet] = useState('');
-    const [simpleSweetSell, setSimpleSweetSell] = useState('');
+    const [simpleSweetSell, setSimpleSweetSell] = useState('0');
     const [verySweet, setVerySweet] = useState('');
-    const [verySweetSell, setVerySweetSell] = useState('');
+    const [verySweetSell, setVerySweetSell] = useState('0');
 
     // Estado para la baya seleccionada (solo una puede estar seleccionada)
     const [selectedBaya, setSelectedBaya] = useState<string | null>(null);
@@ -107,6 +107,9 @@ export const Calculadora = () => {
                 const riegoTrigger: TimestampTrigger = {
                     type: TriggerType.TIMESTAMP,
                     timestamp: horaRiegoDate.getTime(),
+                    alarmManager: {
+                        allowWhileIdle: true,
+                    },
                 };
 
                 await notifee.createTriggerNotification(
@@ -114,14 +117,18 @@ export const Calculadora = () => {
                         title: 'Recordatorio de Riego',
                         body: `Tus bayas ${selectedBaya} necesitan ser regadas`,
                         android: {
-                            channelId: 'default',
+                            channelId: 'Riego BayasPokemmo',
                             pressAction: {
-                                id: 'default',
+                                id: 'Riego BayasPokemmo',
                             },
                             largeIcon: largeIcon,  // Usa el ícono personalizado
                             smallIcon: 'ic_noti',
                             importance: AndroidImportance.HIGH,
                             sound: 'default',
+                            style: {
+                                type: AndroidStyle.BIGTEXT,
+                                text: `Tus bayas ${selectedBaya} necesitan ser regadas`,
+                            },
                         },
                     },
                     riegoTrigger
@@ -135,6 +142,9 @@ export const Calculadora = () => {
                 const recogidaTrigger: TimestampTrigger = {
                     type: TriggerType.TIMESTAMP,
                     timestamp: horaRecogidaDate.getTime(),
+                    alarmManager: {
+                        allowWhileIdle: true,
+                    },
                 };
 
                 await notifee.createTriggerNotification(
@@ -142,14 +152,18 @@ export const Calculadora = () => {
                         title: 'Recordatorio de Cosecha',
                         body: `Tus bayas ${selectedBaya} están listas para ser cosechadas`,
                         android: {
-                            channelId: 'default',
+                            channelId: 'Cosecha BayasPokemmo',
                             pressAction: {
-                                id: 'default',
+                                id: 'Cosecha BayasPokemmo',
                             },
                             largeIcon: largeIcon,  // Usa el ícono personalizado
                             smallIcon: 'ic_noti',
                             importance: AndroidImportance.HIGH,
                             sound: 'default',
+                            style: {
+                                type: AndroidStyle.BIGTEXT,
+                                text: `Tus bayas ${selectedBaya} están listas para ser cosechadas`,
+                            },
                         },
                     },
                     recogidaTrigger
@@ -169,12 +183,12 @@ export const Calculadora = () => {
 
     const reset = async () => {
         setSimpleSpicy('');
-        setSimpleSpicySell('');
+        setSimpleSpicySell('0');
         setVerySpicy('');
         setSimpleSweet('');
-        setSimpleSweetSell('');
+        setSimpleSweetSell('0');
         setVerySweet('');
-        setVerySweetSell('');
+        setVerySweetSell('0');
         setSelectedBaya(null);
         setHoraPlantacion('00:00 AM');
         setHoraRiego('00:00 AM');
@@ -354,9 +368,10 @@ export const Calculadora = () => {
                     <Text style={styles.tableCell}>{horaRiego}</Text>
                     <Text style={styles.tableCell}>{horaRecogida}</Text>
                 </View>
-
             </View>
-
+            <TouchableOpacity style={styles.calculateButton} onPress={scheduleNotifications}>
+                <Text style={styles.buttonText}>Crear Recordatorio</Text>
+            </TouchableOpacity>
             {/* Semillas Picantes */}
             <Text style={styles.sectionTitle}>Semillas Picantes:</Text>
             <View style={styles.seedRow}>
@@ -423,9 +438,6 @@ export const Calculadora = () => {
             </TouchableOpacity>
             <TouchableOpacity style={styles.calculateButton} onPress={reset}>
                 <Text style={styles.buttonText}>Reiniciar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.calculateButton} onPress={scheduleNotifications}>
-                <Text style={styles.buttonText}>Crear Recordatorio</Text>
             </TouchableOpacity>
             {/* Resultado */}
             <Text style={styles.resultTitle}>Semillas restantes para vender:</Text>
