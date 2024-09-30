@@ -64,8 +64,8 @@ export const Calculadora = () => {
 
     async function createNotificationChannel() {
         await notifee.createChannel({
-            id: 'default',
-            name: 'Default Channel',
+            id: 'BayasPokemmo',
+            name: 'BayasPokemmo',
             importance: AndroidImportance.HIGH, // Asegúrate de que la importancia sea alta
         });
     }
@@ -117,7 +117,7 @@ export const Calculadora = () => {
                         title: 'Recordatorio de Riego',
                         body: `Tus bayas ${selectedBaya} necesitan ser regadas`,
                         android: {
-                            channelId: 'Riego BayasPokemmo',
+                            channelId: 'BayasPokemmo',
                             pressAction: {
                                 id: 'Riego BayasPokemmo',
                             },
@@ -152,7 +152,7 @@ export const Calculadora = () => {
                         title: 'Recordatorio de Cosecha',
                         body: `Tus bayas ${selectedBaya} están listas para ser cosechadas`,
                         android: {
-                            channelId: 'Cosecha BayasPokemmo',
+                            channelId: 'BayasPokemmo',
                             pressAction: {
                                 id: 'Cosecha BayasPokemmo',
                             },
