@@ -121,6 +121,7 @@ export const Calculadora = () => {
                             pressAction: {
                                 id: 'Riego BayasPokemmo',
                             },
+                            showTimestamp: true,
                             largeIcon: largeIcon,  // Usa el ícono personalizado
                             smallIcon: 'ic_noti',
                             importance: AndroidImportance.HIGH,
@@ -156,6 +157,7 @@ export const Calculadora = () => {
                             pressAction: {
                                 id: 'Cosecha BayasPokemmo',
                             },
+                            showTimestamp: true,
                             largeIcon: largeIcon,  // Usa el ícono personalizado
                             smallIcon: 'ic_noti',
                             importance: AndroidImportance.HIGH,
