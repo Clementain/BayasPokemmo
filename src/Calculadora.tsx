@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, Alert, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import notifee, { AndroidImportance, TimestampTrigger, TriggerType, AndroidStyle } from '@notifee/react-native';
+import notifee, { AndroidImportance, TimestampTrigger, TriggerType, AndroidStyle, AuthorizationStatus } from '@notifee/react-native';
 
 
 export const Calculadora = () => {
@@ -63,11 +63,15 @@ export const Calculadora = () => {
 
 
     async function createNotificationChannel() {
-        await notifee.createChannel({
-            id: 'BayasPokemmo',
-            name: 'BayasPokemmo',
-            importance: AndroidImportance.HIGH, // Asegúrate de que la importancia sea alta
-        });
+        try {
+            const channelId = await notifee.createChannel({
+                id: 'BayasPokemmo',
+                name: 'BayasPokemmo',
+                importance: AndroidImportance.HIGH,
+            });
+        } catch (e) {
+            console.error('[Notifee] Error creando canal:', e);
+        }
     }
 
     useEffect(() => {
@@ -75,110 +79,123 @@ export const Calculadora = () => {
     }, []);
 
     useEffect(() => {
-        const requestPermissions = async () => {
-            await notifee.requestPermission();
-        };
-        requestPermissions();
+        (async () => {
+            const settings = await notifee.getNotificationSettings();
+            if (settings.authorizationStatus !== AuthorizationStatus.AUTHORIZED) {
+                const result = await notifee.requestPermission();
+            }
+        })();
     }, []);
 
 
 
     const scheduleNotifications = async () => {
+        // 1. Log inicial con datos clave
+
+        // 2. Validación de datos antes de programar
+        if (!selectedBaya || !horaRiegoDate || !horaRecogidaDate) {
+            console.warn('[Debug] Faltan datos de baya o fechas para programar');
+            Alert.alert('Error', 'Por favor, selecciona una baya y define las horas.');
+            return;
+        }
+
+        const currentDate = new Date();
+
+        // 3. Mapa de íconos según la baya seleccionada
+        const largeIconMap: Record<string, any> = {
+            'Zreza': require('../assets/img/Baya_Zreza_EP.png'),
+            'Meloc': require('../assets/img/Baya_Meloc_EP.png'),
+            'Safre': require('../assets/img/Baya_Safre_EP.png'),
+            'Zanama': require('../assets/img/Baya_Zanama_EP.png'),
+        };
+        const largeIcon = largeIconMap[selectedBaya];
+
+        // 4. Programar notificación de riego
         try {
-            if (!selectedBaya || !horaRiego || !horaRecogida) {
-                Alert.alert('Error', 'Por favor, selecciona una baya y asegúrate de que las horas de riego y recogida estén definidas.');
-                return;
-            }
-
-            const currentDate = new Date();
-
-            // Map de íconos personalizados para las bayas
-            const largeIconMap: { [key: string]: any } = {
-                'Zreza': require('../assets/img/Baya_Zreza_EP.png'),
-                'Meloc': require('../assets/img/Baya_Meloc_EP.png'),
-                'Safre': require('../assets/img/Baya_Safre_EP.png'),
-                'Zanama': require('../assets/img/Baya_Zanama_EP.png'),
+            const riegoTrigger: TimestampTrigger = {
+                type: TriggerType.TIMESTAMP,
+                timestamp: horaRiegoDate.getTime(),
+                alarmManager: { allowWhileIdle: true },
             };
 
-            const largeIcon = largeIconMap[selectedBaya];
-
-            // Notificación para el riego
-            if (horaRiegoDate && horaRiegoDate.getTime() > currentDate.getTime()) {
-                const riegoTrigger: TimestampTrigger = {
-                    type: TriggerType.TIMESTAMP,
-                    timestamp: horaRiegoDate.getTime(),
-                    alarmManager: {
-                        allowWhileIdle: true,
-                    },
-                };
-
-                await notifee.createTriggerNotification(
-                    {
-                        title: 'Recordatorio de Riego',
-                        body: `Tus bayas ${selectedBaya} necesitan ser regadas`,
-                        android: {
-                            channelId: 'BayasPokemmo',
-                            pressAction: {
-                                id: 'Riego BayasPokemmo',
-                            },
-                            showTimestamp: true,
-                            largeIcon: largeIcon,  // Usa el ícono personalizado
-                            smallIcon: 'ic_noti',
-                            importance: AndroidImportance.HIGH,
-                            sound: 'default',
-                            style: {
-                                type: AndroidStyle.BIGTEXT,
-                                text: `Tus bayas ${selectedBaya} necesitan ser regadas`,
-                            },
+            await notifee.createTriggerNotification(
+                {
+                    title: 'Recordatorio de Riego',
+                    body: `Tus bayas ${selectedBaya} necesitan ser regadas`,
+                    android: {
+                        channelId: 'BayasPokemmo',
+                        pressAction: { id: 'Riego BayasPokemmo' },
+                        showTimestamp: true,
+                        largeIcon,
+                        smallIcon: 'ic_noti',
+                        importance: AndroidImportance.HIGH,
+                        sound: 'default',
+                        style: {
+                            type: AndroidStyle.BIGTEXT,
+                            text: `Tus bayas ${selectedBaya} necesitan ser regadas`,
                         },
                     },
-                    riegoTrigger
-                );
-            } else {
-                Alert.alert('Error', 'La hora del riego es inválida o está en el pasado.');
-            }
+                },
+                riegoTrigger
+            );
+        } catch (err) {
+            console.error('[Error] al crear notificación de riego:', err);
+        }
 
-            // Notificación para la recogida
-            if (horaRecogidaDate && horaRecogidaDate.getTime() > currentDate.getTime()) {
-                const recogidaTrigger: TimestampTrigger = {
-                    type: TriggerType.TIMESTAMP,
-                    timestamp: horaRecogidaDate.getTime(),
-                    alarmManager: {
-                        allowWhileIdle: true,
-                    },
-                };
+        // 5. Programar notificación de cosecha
+        try {
+            const recogidaTrigger: TimestampTrigger = {
+                type: TriggerType.TIMESTAMP,
+                timestamp: horaRecogidaDate.getTime(),
+                alarmManager: { allowWhileIdle: true },
+            };
 
-                await notifee.createTriggerNotification(
-                    {
-                        title: 'Recordatorio de Cosecha',
-                        body: `Tus bayas ${selectedBaya} están listas para ser cosechadas`,
-                        android: {
-                            channelId: 'BayasPokemmo',
-                            pressAction: {
-                                id: 'Cosecha BayasPokemmo',
-                            },
-                            showTimestamp: true,
-                            largeIcon: largeIcon,  // Usa el ícono personalizado
-                            smallIcon: 'ic_noti',
-                            importance: AndroidImportance.HIGH,
-                            sound: 'default',
-                            style: {
-                                type: AndroidStyle.BIGTEXT,
-                                text: `Tus bayas ${selectedBaya} están listas para ser cosechadas`,
-                            },
+            await notifee.createTriggerNotification(
+                {
+                    title: 'Recordatorio de Cosecha',
+                    body: `Tus bayas ${selectedBaya} están listas para ser cosechadas`,
+                    android: {
+                        channelId: 'BayasPokemmo',
+                        pressAction: { id: 'Cosecha BayasPokemmo' },
+                        showTimestamp: true,
+                        largeIcon,
+                        smallIcon: 'ic_noti',
+                        importance: AndroidImportance.HIGH,
+                        sound: 'default',
+                        style: {
+                            type: AndroidStyle.BIGTEXT,
+                            text: `Tus bayas ${selectedBaya} están listas para ser cosechadas`,
                         },
                     },
-                    recogidaTrigger
-                );
-            } else {
-                Alert.alert('Error', 'La hora de recogida es inválida o está en el pasado.');
-            }
+                },
+                recogidaTrigger
+            );
+        } catch (err) {
+            console.error('[Error] al crear notificación de cosecha:', err);
+        }
 
-            Alert.alert('Notificaciones programadas', `Se han programado notificaciones para el riego y la cosecha de tus bayas ${selectedBaya}`);
-        } catch (error) {
-            Alert.alert('Error', (error as Error).message);
+        // 6. Confirmación final al usuario
+        Alert.alert(
+            'Notificaciones programadas',
+            `Se han programado notificaciones para el riego y la cosecha de tus bayas ${selectedBaya}`
+        );
+    };
+
+    const checkBattery = async () => {
+        const isOpt = await notifee.isBatteryOptimizationEnabled();
+        if (isOpt) {
+            Alert.alert(
+                'Optimización de batería activa',
+                'Desactívala para que tus alarmas se disparen a tiempo.',
+                [
+                    { text: 'Abrir ajustes', onPress: () => notifee.openBatteryOptimizationSettings() },
+                    { text: 'Cancelar', style: 'cancel' }
+                ],
+                { cancelable: false }
+            );
         }
     };
+    useEffect(() => { checkBattery(); }, []);
 
 
 
@@ -219,25 +236,28 @@ export const Calculadora = () => {
 
 
     const horas = () => {
-        const currentDate = new Date();
-        if (selectedBaya === 'Zanama') {
-            const { date: plantacionDate, time: plantacionTime } = formatDateTime(currentDate);
-            setHoraPlantacion(`${plantacionDate}\n${plantacionTime}`);
+        // 1. Log inicial: entra en la función y bayas seleccionada
 
-            const riegoDate = new Date(currentDate.getTime() + 8 * 60 * 60 * 1000);
-            const { date: riegoFecha, time: riegoHora } = formatDateTime(riegoDate);
-            setHoraRiego(`${riegoFecha}\n${riegoHora}`);
+        const now = new Date();
+
+        // 2. Plantación: formateo y set
+        const { date: plantacionDate, time: plantacionTime } = formatDateTime(now);
+        setHoraPlantacion(`${plantacionDate}\n${plantacionTime}`);
+
+        if (selectedBaya === 'Zanama') {
+            // 3a. Caso Zanama: notifs a 8 y 20 horas
+            const riegoDate = new Date(now.getTime() + 8 * 60 * 60 * 1000);
+            const { date: riegoDateFmt, time: riegoTimeFmt } = formatDateTime(riegoDate);
+            setHoraRiego(`${riegoDateFmt}\n${riegoTimeFmt}`);
             setHoraRiegoDate(riegoDate);
 
-            const recogidaDate = new Date(currentDate.getTime() + 20 * 60 * 60 * 1000);
-            const { date: recogidaFecha, time: recogidaHora } = formatDateTime(recogidaDate);
-            setHoraRecogida(`${recogidaFecha}\n${recogidaHora}`);
+            const recogidaDate = new Date(now.getTime() + 20 * 60 * 60 * 1000);
+            const { date: recogidaDateFmt, time: recogidaTimeFmt } = formatDateTime(recogidaDate);
+            setHoraRecogida(`${recogidaDateFmt}\n${recogidaTimeFmt}`);
             setHoraRecogidaDate(recogidaDate);
 
         } else {
-            const { date: plantacionDate, time: plantacionTime } = formatDateTime(currentDate);
-            setHoraPlantacion(`${plantacionDate}\n${plantacionTime}`);
-
+            // 3b. Otros casos: preguntar si regaste al plantar
             Alert.alert(
                 'Riego de Bayas',
                 '¿Has regado las bayas al plantarlas?',
@@ -245,37 +265,38 @@ export const Calculadora = () => {
                     {
                         text: 'No',
                         onPress: () => {
-                            const riegoDate = new Date(currentDate.getTime() + 4 * 60 * 60 * 1000);
-                            const { date: riegoFecha, time: riegoHora } = formatDateTime(riegoDate);
-                            setHoraRiego(`${riegoFecha}\n${riegoHora}`);
+
+                            const riegoDate = new Date(now.getTime() + 4 * 60 * 60 * 1000);
+                            const { date: riegoDateFmt, time: riegoTimeFmt } = formatDateTime(riegoDate);
+                            setHoraRiego(`${riegoDateFmt}\n${riegoTimeFmt}`);
                             setHoraRiegoDate(riegoDate);
 
-                            const recogidaDate = new Date(currentDate.getTime() + 16 * 60 * 60 * 1000);
-                            const { date: recogidaFecha, time: recogidaHora } = formatDateTime(recogidaDate);
-                            setHoraRecogida(`${recogidaFecha}\n${recogidaHora}`);
+                            const recogidaDate = new Date(now.getTime() + 16 * 60 * 60 * 1000);
+                            const { date: recogidaDateFmt, time: recogidaTimeFmt } = formatDateTime(recogidaDate);
+                            setHoraRecogida(`${recogidaDateFmt}\n${recogidaTimeFmt}`);
                             setHoraRecogidaDate(recogidaDate);
-
                         }
                     },
                     {
                         text: 'Sí',
                         onPress: () => {
-                            const riegoDate = new Date(currentDate.getTime() + 12 * 60 * 60 * 1000);
-                            const { date: riegoFecha, time: riegoHora } = formatDateTime(riegoDate);
-                            setHoraRiego(`${riegoFecha}\n${riegoHora}`);
+
+                            const riegoDate = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+                            const { date: riegoDateFmt, time: riegoTimeFmt } = formatDateTime(riegoDate);
+                            setHoraRiego(`${riegoDateFmt}\n${riegoTimeFmt}`);
                             setHoraRiegoDate(riegoDate);
 
-                            const recogidaDate = new Date(currentDate.getTime() + 16 * 60 * 60 * 1000);
-                            const { date: recogidaFecha, time: recogidaHora } = formatDateTime(recogidaDate);
-                            setHoraRecogida(`${recogidaFecha}\n${recogidaHora}`);
+                            const recogidaDate = new Date(now.getTime() + 16 * 60 * 60 * 1000);
+                            const { date: recogidaDateFmt, time: recogidaTimeFmt } = formatDateTime(recogidaDate);
+                            setHoraRecogida(`${recogidaDateFmt}\n${recogidaTimeFmt}`);
                             setHoraRecogidaDate(recogidaDate);
-
                         }
                     }
                 ]
             );
         }
     };
+
 
 
     const calculate = () => {
